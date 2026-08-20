@@ -2,6 +2,7 @@ package com.bankcore.controller;
 
 import com.bankcore.dto.LoginRequest;
 import com.bankcore.model.User;
+import com.bankcore.security.JwtService;
 import com.bankcore.service.LoginService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +15,13 @@ import java.util.Map;
 public class LoginController {
 
     private final LoginService loginService;
+    private final JwtService jwtService;
 
-    public LoginController(LoginService loginService) {
+    public LoginController(
+            LoginService loginService,
+            JwtService jwtService) {
         this.loginService = loginService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -26,9 +31,14 @@ public class LoginController {
         try {
             User user = loginService.login(request);
 
+            String token = jwtService.generateToken(user);
+
             return ResponseEntity.ok(
                     Map.of(
                             "message", "Login successful",
+                            "token", token,
+                            "tokenType", "Bearer",
+                            "expiresIn", 3600,
                             "userId", user.getId(),
                             "username", user.getUsername(),
                             "email", user.getEmail()
@@ -39,7 +49,10 @@ public class LoginController {
 
             return ResponseEntity
                     .status(401)
-                    .body(Map.of("error", "Invalid username or password"));
+                    .body(Map.of(
+                            "error",
+                            "Invalid username or password"
+                    ));
         }
     }
 }
